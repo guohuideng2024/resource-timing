@@ -60,7 +60,6 @@ We need to generate a unique `resourceId` for every resource we fetch. The initi
 
 1. Yash's current implementation: generate a random number `increase` between [1,10] at the beginning of session. Then, a next `resourceId` is the sum of the previous `resourceId` and `increase`.
 2. According to the discussion in the past, the method above was following how chromium generates [`current_interaction_event_id_for_event_timing`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/timing/responsiveness_metrics.cc;l=681;drc=763100e0bf9a25ba6f203612af5a4331fbd2d048). However, the mothod above is different from it. It looks to me that we can do the same with `current_interaction_event_id_for_event_timing`: the `increase` value is a fixed number picked up by the user agent and it is not generated randomly at the beginning of a session.
-3. The reason why `current_interaction_event_id_for_event_timing` is increased by a number rather than 1,  is said to be "discourage developers from using the value to 'count' the number of user interactions." Is this reason still valid for `resourceId`? If not, `increase` can be 1.
 
 ## Stakeholder Feedback/Opposition
 TBD.
