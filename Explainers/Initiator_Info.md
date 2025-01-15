@@ -6,20 +6,11 @@
 
 ## References & acknowledgements
 
-yashjoshimail@gmail.com put up [4 CLs](https://chromium-review.googlesource.com/q/owner:yashjoshimail@gmail.com)(wpt tests, and implementation for the cases where the initiators are html and javascript) and a [design doc](https://docs.google.com/document/d/1ODMUQP9ua-0plxe0XhDds6aPCe_paZS6Cz1h1wdYiKU/edit?tab=t.0) . More discussion can be found [here](https://github.com/w3c/resource-timing/issues/263) and [here](https://github.com/w3c/resource-timing/issues/380). The initial version of this document is based on Yash’s latest work with very minor changes.
-
-## Introduction
-
-This doc proposes adding the following two new fields to `PerformanceResourceTiming`:
--	`resourceId`: an unsigned integer that’s unique in a session. It identifies the current fetched resource.
--	`Initiator`: the `resourceId` of the resource that triggered the fetch of current resource.
-
-Suppose we have two PRT(PerformanceResourceTiming) entries: `prt1` and `prt2`, and `prt1.resourceId == prt2.initiator`. We conclude that the resource described by `prt1` triggered the fetch of resource described by `prt2`.
-
-As `nicjansma@` points out [here](https://github.com/w3c/resource-timing/issues/263), the data exposed by this proposal is a RUM version of [RequestMap tool](http://requestmap.webperf.tools/). The RequestMap tool can be a good demonstration of the data to be exposed.
+yashjoshimail@gmail.com put up [4 CLs](https://chromium-review.googlesource.com/q/owner:yashjoshimail@gmail.com)(wpt tests, and implementation for the cases where the initiators are html and javascript) and a [design doc](https://docs.google.com/document/d/1ODMUQP9ua-0plxe0XhDds6aPCe_paZS6Cz1h1wdYiKU/edit?tab=t.0) . More discussion can be found [here](https://github.com/w3c/resource-timing/issues/263) and [here](https://github.com/w3c/resource-timing/issues/380).
 
 ## Goal
 To expose the dependency of the resources from RUM(real user monitoring) data.
+As `nicjansma@` points out [here](https://github.com/w3c/resource-timing/issues/263), the data exposed by this proposal is a RUM version of [RequestMap tool](http://requestmap.webperf.tools/). The RequestMap tool can be a good demonstration of the data to be exposed.
     
 ## User Research
 
@@ -29,9 +20,13 @@ The idea was brought up in year [2021](https://github.com/w3c/resource-timing/is
 -	Security products to backtrace rogue requests
 
 
-## API Changes and Example Code
+## Yosh's approach
 
-Two new fields `resourceId` and `initiator` will be added to the `PerformanceEntry` returned by `PerformanceResourceTiming`: 
+The following two new fields are added to `PerformanceResourceTiming`:
+-	`resourceId`: an unsigned integer that’s unique in a session. It identifies the current fetched resource.
+-	`Initiator`: the `resourceId` of the resource that triggered the fetch of current resource.
+
+Suppose we have two PRT(PerformanceResourceTiming) entries: `prt1` and `prt2`, and `prt1.resourceId == prt2.initiator`. We conclude that the resource described by `prt1` triggered the fetch of resource described by `prt2`.
 
 ```javascript
 const entry_list = performance.getEntriesByType("resource");
@@ -48,24 +43,29 @@ Then we conclude that "main_page" triggered the fetch of "an_img_included_in_mai
 */
 ```
 
-## Non goal
-
--	Two resources are reported as related only if the fetch of one resource is actually triggered by the other, during the page load process. It doesn’t provide a comprehensive resource dependency graph.
--	The dependency tree presents the “trigger” relation only. It doesn’t present the relation that the download/execution of one resource blocking another.
-
-Therefore, the number of `initiator` cannot be 2 or more. The resultant dependency graph is a tree.
-
-## Open Design Issues
+### Generating `resourceId`
 We need to generate a unique `resourceId` for every resource we fetch. The initial `resourceId` could be randomly generated from a range, for example, [1, 10]. Then how to generate a next `resourceId`?
 
 1. Yash's current implementation: generate a random number `increase` between [1,10] at the beginning of session. Then, a next `resourceId` is the sum of the previous `resourceId` and `increase`.
 2. According to the discussion in the past, the method above was following how chromium generates [`current_interaction_event_id_for_event_timing`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/timing/responsiveness_metrics.cc;l=681;drc=763100e0bf9a25ba6f203612af5a4331fbd2d048). However, the mothod above is different from it. It looks to me that we can do the same with `current_interaction_event_id_for_event_timing`: the `increase` value is a fixed number picked up by the user agent and it is not generated randomly at the beginning of a session.
 
+### Find out `initiator`
+Yosh's put up CLs that seem to addressed the cases where the initiator is a html file(not complete) and javascript. The case where the initiator is a css file is not explored yet.
+
+## Alternative: Expose [`FetchInitiatorInfo`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/loader/fetch/fetch_initiator_info.h;l=36;drc=b2be29fa62337e3b1a1064b0a5719f80b373da84) and improve `FetchInitiatorInfo`.
+
+`FetchInitiatorInfo` is used by the chromium devtool. It seems to work well in cases where the initiator is a html file and a javascript. But the case where the initiator is a css file is missing too.
+
+We could improve `FetchInitiatorInfo` and that benefit the devtool too.
+
+## Decision on which approach to take:
+Need to do more research and collect feedback from the community before make the decision.
+
 ## Stakeholder Feedback/Opposition
 TBD.
 
 ## Security/Privacy Considerations
-The `resourceId` and `initiator` are behind `CORS` check. `Time-Allow-Origin` doesn’t expose these values.
+All the attributes proposed to be exposed are behind `CORS` check. `Time-Allow-Origin` doesn’t expose these values.
 
 ### [Self-Review Questionnaire: Security and Privacy](https://w3ctag.github.io/security-questionnaire/)
 
