@@ -11,6 +11,7 @@ yashjoshimail@gmail.com put up [4 CLs](https://chromium-review.googlesource.com/
 ## Goal
 To expose the dependency of the resources from RUM(real user monitoring) data.
 As `nicjansma@` points out [here](https://github.com/w3c/resource-timing/issues/263), the data exposed by this proposal is a RUM version of [RequestMap tool](http://requestmap.webperf.tools/). The RequestMap tool can be a good demonstration of the data to be exposed.
+Chrome devtool exposes an attribute [`initiator`](https://developer.chrome.com/docs/devtools/network) for a similar purpose.
     
 ## User Research
 
@@ -30,7 +31,7 @@ Suppose we have two PRT(PerformanceResourceTiming) entries: `prt1` and `prt2`, a
 
 ```javascript
 const entry_list = performance.getEntriesByType("resource");
-for(const entry of entry_list) { 
+for(const entry of entry_list) {
     console.log(entry.name+": resourceId="+ 
        entry.resourceId+", initiator="+entry.initiator) ;
 }
@@ -49,17 +50,22 @@ We need to generate a unique `resourceId` for every resource we fetch. The initi
 1. Yash's current implementation: generate a random number `increase` between [1,10] at the beginning of session. Then, a next `resourceId` is the sum of the previous `resourceId` and `increase`.
 2. According to the discussion in the past, the method above was following how chromium generates [`current_interaction_event_id_for_event_timing`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/timing/responsiveness_metrics.cc;l=681;drc=763100e0bf9a25ba6f203612af5a4331fbd2d048). However, the mothod above is different from it. It looks to me that we can do the same with `current_interaction_event_id_for_event_timing`: the `increase` value is a fixed number picked up by the user agent and it is not generated randomly at the beginning of a session.
 
-### Find out `initiator`
-Yosh's put up CLs that seem to addressed the cases where the initiator is a html file(not complete) and javascript. The case where the initiator is a css file is not explored yet.
+## A hopeful alternative: expose the initiator's url directly in a field `initiator`
 
-## Alternative: Expose the data source to the devtool `initiator` field, and improve the data source.
+```javascript
+const entry_list = performance.getEntriesByType("resource");
+for(const entry of entry_list) {
+    console.log(entry.name+": initiator="+ entry.initiator) ;
+}
 
-The data source for the dev tool include, but is not limited to [`FetchInitiatorInfo`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/loader/fetch/fetch_initiator_info.h;l=36;drc=b2be29fa62337e3b1a1064b0a5719f80b373da84).
+/* We could get:
+url_to_main_page: initiator="OTHER"
+url_to_an_img_included_in_main_page_markup: initiator=url_to_main_page
 
-The data source is not complete. It seems to work well in cases where the initiator is a html file and a javascript. 
+Then we see that "main_page" triggered the fetch of "an_img_included_in_main_page_markup".
+*/
+```
 
-## Decision on which approach to take:
-Need to do more research and collect feedback from the community before make the decision.
 
 ## Stakeholder Feedback/Opposition
 TBD.
