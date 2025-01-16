@@ -52,11 +52,11 @@ We need to generate a unique `resourceId` for every resource we fetch. The initi
 ### Find out `initiator`
 Yosh's put up CLs that seem to addressed the cases where the initiator is a html file(not complete) and javascript. The case where the initiator is a css file is not explored yet.
 
-## Alternative: Expose [`FetchInitiatorInfo`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/loader/fetch/fetch_initiator_info.h;l=36;drc=b2be29fa62337e3b1a1064b0a5719f80b373da84) and improve `FetchInitiatorInfo`.
+## Alternative: Expose the data source to the devtool `initiator` field, and improve the data source.
 
-`FetchInitiatorInfo` is used by the chromium devtool. It seems to work well in cases where the initiator is a html file and a javascript. But the case where the initiator is a css file is missing too.
+The data source for the dev tool include, but is not limited to [`FetchInitiatorInfo`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/loader/fetch/fetch_initiator_info.h;l=36;drc=b2be29fa62337e3b1a1064b0a5719f80b373da84).
 
-We could improve `FetchInitiatorInfo` and that benefit the devtool too.
+The data source is not complete. It seems to work well in cases where the initiator is a html file and a javascript. 
 
 ## Decision on which approach to take:
 Need to do more research and collect feedback from the community before make the decision.
