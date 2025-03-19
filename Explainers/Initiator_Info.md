@@ -20,52 +20,44 @@ The idea was brought up in year [2021](https://github.com/w3c/resource-timing/is
 -	The CDN to optimize delivering content
 -	Security products to backtrace rogue requests
 
-
-## Yosh's approach
-
-The following two new fields are added to `PerformanceResourceTiming`:
--	`resourceId`: an unsigned integer that’s unique in a session. It identifies the current fetched resource.
--	`Initiator`: the `resourceId` of the resource that triggered the fetch of current resource.
-
-Suppose we have two PRT(PerformanceResourceTiming) entries: `prt1` and `prt2`, and `prt1.resourceId == prt2.initiator`. We conclude that the resource described by `prt1` triggered the fetch of resource described by `prt2`.
+## API Changes and Example Code
+A new field `initiatorUrl` will be added to the `PerformanceEntry` returned by `PerformanceResourceTiming`. `initiatorUrl` is the url of the resource that triggered the fetch of current resource.
 
 ```javascript
-const entry_list = performance.getEntriesByType("resource");
-for(const entry of entry_list) {
-    console.log(entry.name+": resourceId="+ 
-       entry.resourceId+", initiator="+entry.initiator) ;
-}
+const observer = new PerformanceObserver((list) => {
+  list.getEntries().forEach((entry) => {
+    console.log("name: ", entry.name, "initiatorUrl: ", entry.initiatorUrl);
+  });
+});
+observer.observe({ type: "resource", buffered: true });
 
-/* We could get:
-url_to_main_page: resourceId=1, initiator=0
-url_to_an_img_included_in_main_page_markup: resourceId=13, initiator=1 
+/*
+sample output:
+name: url_to_apple, initiatorUrl: ....
+name: url_to_orange, initiatorUlr: url_to_apple
 
-Then we conclude that "main_page" triggered the fetch of "an_img_included_in_main_page_markup".
+Then we conclude that resource "apple" triggered the fetch of the resource "orange".
 */
 ```
 
-### Generating `resourceId`
-We need to generate a unique `resourceId` for every resource we fetch. The initial `resourceId` could be randomly generated from a range, for example, [1, 10]. Then how to generate a next `resourceId`?
+An empty `initiatorUlr` indicates the `initiator info` is missing. This happens to a page that's loaded
+according to the user's navigation, for which the "initiator resource" doesn't exist. When the UA cannot find out the inititor, for any reason (including partial implementation), an empty `initiatorUrl` can be returned. 
 
-1. Yash's current implementation: generate a random number `increase` between [1,10] at the beginning of session. Then, a next `resourceId` is the sum of the previous `resourceId` and `increase`.
-2. According to the discussion in the past, the method above was following how chromium generates [`current_interaction_event_id_for_event_timing`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/timing/responsiveness_metrics.cc;l=681;drc=763100e0bf9a25ba6f203612af5a4331fbd2d048). However, the mothod above is different from it. It looks to me that we can do the same with `current_interaction_event_id_for_event_timing`: the `increase` value is a fixed number picked up by the user agent and it is not generated randomly at the beginning of a session.
+## Alternatives considered
 
-## A hopeful alternative: expose the initiator's url directly in a field `initiator`
+### 1. Using a numeric Id to identify a resource, rather than using URL (Yosh's approach)
 
-```javascript
-const entry_list = performance.getEntriesByType("resource");
-for(const entry of entry_list) {
-    console.log(entry.name+": initiator="+ entry.initiator) ;
-}
+Using an Id obscures the target resource. We must provide the Id for all the resources so that the Ids can be interpreted.
+This approach makes it more complicated to consume the information.
 
-/* We could get:
-url_to_main_page: initiator="OTHER"
-url_to_an_img_included_in_main_page_markup: initiator=url_to_main_page
+### 2. Using a pointer to the initiator `PerformanceResourceTiming` Entry
 
-Then we see that "main_page" triggered the fetch of "an_img_included_in_main_page_markup".
-*/
-```
+It would be effortless to find the initator resource. However, the initiator `PerformanceResourceTiming` entry may be garbage collected already when it's reported as an initiator resource. So it alone is not a reliable presentation.
 
+## Other considerations
+The "initiator" concept has been implemented in a number of places. Most noticablly, it's reported in Chrome Devtool "network" tab. However, there is a lack of a clear specification on how the initiator should be determined.
+
+For interoperability, it's very desiable to specify how the initiator resource is determined.
 
 ## Stakeholder Feedback/Opposition
 TBD.
