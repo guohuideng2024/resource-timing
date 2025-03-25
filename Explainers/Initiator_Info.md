@@ -1,3 +1,7 @@
+> [!NOTE]
+> The most up-to-date explainer is now located at:
+> https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ResourceTimingInitiatorInfo/explainer.md
+
 # Expose resource dependency in Resource Timing
 
 ## Contacts
