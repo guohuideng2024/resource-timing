@@ -148,8 +148,7 @@ document.head.appendChild(link);
 When a resource is requested while script is running, the initiator is **not**
 the script that contains the function that made the request. Instead, it is
 the script that started the current chain of execution. This document calls it
-the *initiating script*. An inline script is identified by the URL of its
-document.
+the *initiating script*.
 
 This applies whether the request is made through an API such as `fetch()`, or
 by inserting an element such as `<img>`, `<link>`, `<script>` or `<iframe>`.
