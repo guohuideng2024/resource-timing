@@ -343,27 +343,3 @@ Tests:
 3. **The browser does not report the initiator for that kind of request.**
    Implementations may cover only part of the cases above and improve over
    time; partial data is still useful.
-
-## 5. Not covered
-
-- **`document.write()`.** Reporting an initiator for resources inserted by
-  `document.write()` is not planned, because the API is deprecated. The current
-  tests for it should be removed.
-
-## 6. Security and privacy
-
-`initiatorUrl` only reveals which URL caused a resource to be fetched. Like
-other detailed Resource Timing information, it is exposed only when the
-resource passes a CORS check; `Timing-Allow-Origin` alone does not expose it.
-See the explainer for the full self-review questionnaire.
-
-## 7. Alternatives considered
-
-- **A numeric ID for each resource.** Consumers would need the IDs of all
-  resources to interpret the data, which makes it harder to use.
-- **A reference to the initiator's `PerformanceResourceTiming` entry.** The
-  initiator's entry may already have been dropped from the buffer when the
-  dependent resource is reported.
-
-A URL is simple to consume. If the same URL was fetched several times, the
-initiating instance is the most recent fetch of that URL.
