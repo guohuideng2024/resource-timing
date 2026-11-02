@@ -273,7 +273,7 @@ From [`resources/iframe-post-message.html`](https://source.chromium.org/chromium
     });
 ```
 
-#### 3.4.3 Design discussion: event and message handlers
+#### 3.4.3 [Design discussion] Event and message handlers
 
 *This section is not part of the behavior. It explains a design decision
 behind [section 3.4.2](#342-asynchronous-execution) and asks for feedback.*
@@ -285,42 +285,54 @@ For event and message handlers, there are two candidates for the initiator:
 - **(B)** The initiating script of the code that caused the event, for example
   the script that called `postMessage()`.
 
-We chose (A) because:
+The discussion in
+[issue #263](https://github.com/w3c/resource-timing/issues/263) identified two
+goals for `initiatorUrl`:
 
-- It treats registering a handler like scheduling any other callback.
-- Many events, such as `load`, network and input events, are fired by the
-  browser, so no script caused them.
-- The sender of a message may be in a cross-origin frame. Reporting its URL
-  could leak information.
-- It serves the use cases in
-  [issue #263](https://github.com/w3c/resource-timing/issues/263):
-  - Optimizing resource delivery, for example preloading resources that are
-    discovered late: the handler's code decides what to fetch, and it is the
-    same on every page load, while the event source can vary.
-  - Attributing resources to the code that brought them in, for example to
-    account for the cost of third-party scripts, or to trace a rogue request:
-    the handler's code is the code that made the request.
+1. **Optimizing resource delivery.** Knowing which resource leads to the
+   loading of another lets developers, tools and CDNs discover late resources
+   and load them earlier, for example with preload.
+2. **Attributing resources.** Knowing which code brought a resource in helps
+   to account for the cost of third-party scripts, including chains such as
+   tag manager → third-party tag → another vendor, and to trace rogue requests.
 
-The trade-off is that (B) would show why a fetch happened at a particular
-time, for example after waiting for a message from an iframe.
+**Goal 1: optimizing resource delivery**
 
-**Known limitation of (A): frameworks that schedule work with messages**
+- (A) reports the code that decides what to fetch. It is the same on every
+  page load, so it gives a stable dependency. Many events, such as `load`,
+  network and input events, are fired by the browser, so (A) is the only
+  candidate for them.
+- (B) reports what triggered the fetch at that time, for example a message
+  from an iframe. This can show what a fetch waited for, but the sender can
+  vary between page loads.
+- Some frameworks use a `MessageChannel` as a scheduler instead of
+  `setTimeout()`, to avoid timer clamping. For example,
+  [React's scheduler](https://github.com/facebook/react/blob/main/packages/scheduler/src/forks/Scheduler.js)
+  registers one `onmessage` handler when it loads, and posts a message to it
+  whenever it has work to do. Rendering and effects, including data fetching
+  in `useEffect()`, run inside that handler. Under (A), their resources report
+  the script that contains React's scheduler, such as a vendor bundle. Under
+  (B), they report the script that started the work, usually the app's entry
+  script. Neither identifies the component that requested the resource,
+  because component code runs as functions called by React
+  ([section 3.4](#34-resources-requested-by-javascript)).
 
-Some frameworks use a `MessageChannel` as a scheduler instead of
-`setTimeout()`, to avoid timer clamping. For example,
-[React's scheduler](https://github.com/facebook/react/blob/main/packages/scheduler/src/forks/Scheduler.js)
-registers one `onmessage` handler when it loads, and posts a message to it
-whenever it has work to do. Rendering and effects, including data fetching in
-`useEffect()`, run inside that handler. Under (A), their resources report the
-script that contains React's scheduler, such as a vendor bundle.
+**Goal 2: attributing resources**
 
-Under (B), they would instead report the script that started the work, usually
-the app's entry script. That helps only when React is bundled separately from
-the app. It still would not identify the component that requested the
-resource, because component code runs as functions called by React
-([section 3.4](#34-resources-requested-by-javascript)).
+- (A) reports the code that made the request, which is the code responsible
+  for it.
+- (B) reports the code that caused the request. This helps when the sender
+  controls what is fetched, for example by passing a URL in the message. But
+  the sender may be in a cross-origin frame, and reporting its URL could leak
+  information.
 
-Feedback on this decision is welcome.
+**Conclusion**
+
+We believe (A) serves both goals better. Neither is perfect: a resource
+fetched by an event or message handler is related to two scripts, the one
+that registered the handler and the one that caused the event, and
+`initiatorUrl` can report only one of them. Some information is lost either
+way. Feedback on this decision is welcome.
 
 ### 3.5 Module scripts
 
