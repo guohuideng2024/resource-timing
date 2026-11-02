@@ -145,7 +145,7 @@ const link = document.createElement("link");
 link.rel = "stylesheet";
 link.href = "/resource-timing/resources/nested-dynamic-initiator.css";
 // nested-dynamic-initiator.css: tentative/initiator-url/stylesheet-dynamic.html
-// initiatorUrl of the resources in the stylesheet: resources/nested-dynamic-initiator.css
+// initiatorUrl of the resources in resources/nested-dynamic-initiator.css: resources/nested-dynamic-initiator.css
 document.head.appendChild(link);
 ```
 
@@ -315,7 +315,7 @@ From [`tentative/initiator-url/dedicated-worker-script.html`](https://source.chr
 new Worker(scriptUrl("classic-worker-from-document"));
 // initiator-url-worker.js?label=module-worker-from-document: tentative/initiator-url/dedicated-worker-script.html
 new Worker(scriptUrl("module-worker-from-document"), {type: "module"});
-// initiatorUrl of the workers started by startDedicatedWorkers(): tentative/initiator-url/dedicated-worker-script.html
+// initiatorUrl of the workers started by startDedicatedWorkers() in resources/initiator-url-dedicated-worker-start.js: tentative/initiator-url/dedicated-worker-script.html
 setTimeout(startDedicatedWorkers, 0);
 ```
 
