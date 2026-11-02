@@ -49,8 +49,9 @@ line.
 
 ### 3.1 Resources in HTML markup
 
-Resources requested by the HTML parser have the document's URL as their
-initiator. This includes:
+Resources referenced by elements in the document's HTML source have the
+document's URL as their initiator. Elements that script creates or modifies
+are covered in section 3.3. This includes:
 
 - `<script src>`, including `async`, `defer` and `type="module"` scripts.
 - `<link rel="preload">` and `<link rel="stylesheet">`.
