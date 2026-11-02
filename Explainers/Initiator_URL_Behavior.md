@@ -13,36 +13,11 @@
 - Web Platform Tests: <https://github.com/web-platform-tests/wpt/tree/master/resource-timing/tentative/initiator-url>
 - Prior work: <https://chromestatus.com/feature/6197847657021440> and the related discussion in <https://github.com/w3c/resource-timing/issues/380>
 
-## 1. Purpose of this document
+## 1. Introduction
 
-The explainer describes why `initiatorUrl` is useful and what the API looks
-like. This document describes, in detail, **which URL is reported** as the
-initiator of a resource in each situation. It is written for implementers of
-other browser engines, and as input for the eventual specification text.
-
-The behavior described here is the behavior of the Chromium implementation
-(behind the `ResourceTimingInitiator` runtime flag), and is covered by the Web
-Platform Tests listed above. Each rule below names the tests that cover it.
-
-## 2. Background
-
-Real user monitoring (RUM) tools want to build a resource dependency tree for a
-page: which resource caused which other resource to be fetched. Use cases
-include:
-
-- Optimizing page load, e.g. finding resources that are discovered late
-  because of long dependency chains, and preloading them.
-- Attributing page weight to first-party and third-party code, including chains
-  such as site → tag manager → third-party script → another third-party script.
-- Helping CDNs make better prefetch decisions.
-- Helping security products trace rogue requests back to their source.
-
-Today this information is only available in developer tools (for example the
-"Initiator" column in the Chrome DevTools Network panel), not in the field.
-
-## 3. API
-
-A new attribute is added to `PerformanceResourceTiming`:
+For background, see the
+[explainer](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ResourceTimingInitiatorInfo/explainer.md).
+The proposed API is:
 
 ```webidl
 partial interface PerformanceResourceTiming {
@@ -50,19 +25,9 @@ partial interface PerformanceResourceTiming {
 };
 ```
 
-`initiatorUrl` is the URL of the document, script or stylesheet that caused the
-resource to be fetched. It is the empty string when the initiator is not
-reported (see section 6).
+This document defines what `initiatorUrl` is for each resource.
 
-```js
-new PerformanceObserver(list => {
-  for (const entry of list.getEntries()) {
-    console.log(entry.name, "was initiated by", entry.initiatorUrl);
-  }
-}).observe({type: "resource", buffered: true});
-```
-
-## 4. Key concept: the initiating script
+## 2. Key concept: the initiating script
 
 When a resource is requested while script is running, the initiator is **not**
 the script that contains the function that made the request. Instead, it is
@@ -87,9 +52,9 @@ function.
 This makes the reported initiator stable: it points at the code that decided
 to load the resource, rather than at a shared helper library.
 
-## 5. Behavior
+## 3. Behavior
 
-### 5.1 Resources requested by the document's markup
+### 3.1 Resources requested by the document's markup
 
 Resources requested by the HTML parser have the document's URL as their
 initiator. This includes:
@@ -102,10 +67,10 @@ initiator. This includes:
 
 Tests: `static-resource.html`.
 
-### 5.2 Resources requested by script
+### 3.2 Resources requested by script
 
 A resource requested while script is running has the initiating script's URL
-as its initiator (section 4). This applies whether the request is made through
+as its initiator (section 2). This applies whether the request is made through
 an API such as `fetch()`, or by inserting an element such as `<img>`, `<link>`,
 `<script>` or `<iframe>`.
 
@@ -116,7 +81,7 @@ an API such as `fetch()`, or by inserting an element such as `<img>`, `<link>`,
 Tests: `inline-script.html`, `external-script.html`,
 `external-script-in-posted-task.html`.
 
-### 5.3 Resources requested in callbacks
+### 3.3 Resources requested in callbacks
 
 A resource requested in a callback reports the initiating script of the code
 that scheduled or registered the callback. This holds even when the callback
@@ -140,19 +105,19 @@ Tests: `set-timeout.html`, `set-interval.html`,
 `event-handler.html`, `event-handler-overwritten.html`,
 `xml-http-request.html`, `iframe-post-message.html`.
 
-### 5.4 Stylesheets
+### 3.4 Stylesheets
 
 - Resources referenced by an external stylesheet, such as `@import` rules,
   `@font-face` fonts and `url()` images, report the stylesheet's URL.
 - Resources referenced by an inline `<style>` element report the document's
-  URL (section 5.1).
+  URL (section 3.1).
 - The stylesheet itself follows the rules above: a stylesheet in markup reports
   the document, and a stylesheet inserted by script reports the initiating
   script.
 
 Tests: `stylesheet-static.html`, `stylesheet-dynamic.html`.
 
-### 5.5 Module scripts
+### 3.5 Module scripts
 
 - A module loaded by the document reports the document's URL. This includes a
   `<script type="module" src>` element in markup, a static `import` in an
@@ -170,7 +135,7 @@ Tests: `module-script-from-document.html`,
 `module-script-from-static-importer.html`,
 `module-script-from-dynamic-importer.html`.
 
-### 5.6 Workers
+### 3.6 Workers
 
 - The script of a dedicated worker, classic or module, reports the initiating
   script of the code that called `new Worker()`. For example, it is the
@@ -191,7 +156,7 @@ Tests: `dedicated-worker-script.html`, `direct.any.js`, `set-timeout.any.js`,
 `queue-microtask.any.js`, `post-message-worker.html`,
 `post-message-shared-worker.html`, `module-script-from-worker.html`.
 
-## 6. When initiatorUrl is empty
+## 4. When initiatorUrl is empty
 
 `initiatorUrl` is the empty string when:
 
@@ -205,20 +170,20 @@ Tests: `dedicated-worker-script.html`, `direct.any.js`, `set-timeout.any.js`,
    Implementations may cover only part of the cases above and improve over
    time; partial data is still useful.
 
-## 7. Not covered
+## 5. Not covered
 
 - **`document.write()`.** Reporting an initiator for resources inserted by
   `document.write()` is not planned, because the API is deprecated. The current
   tests for it should be removed.
 
-## 8. Security and privacy
+## 6. Security and privacy
 
 `initiatorUrl` only reveals which URL caused a resource to be fetched. Like
 other detailed Resource Timing information, it is exposed only when the
 resource passes a CORS check; `Timing-Allow-Origin` alone does not expose it.
 See the explainer for the full self-review questionnaire.
 
-## 9. Alternatives considered
+## 7. Alternatives considered
 
 - **A numeric ID for each resource.** Consumers would need the IDs of all
   resources to interpret the data, which makes it harder to use.
