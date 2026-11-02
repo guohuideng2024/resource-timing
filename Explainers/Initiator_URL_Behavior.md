@@ -233,22 +233,6 @@ const label = "initiator_url_settimeout";
 setTimeout(function() {load_image(label, img);}, 0);
 ```
 
-From [`tentative/initiator-url/post-task.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/post-task.html):
-
-```js
-const label = "initiator_url_posttask";
-// blue.png?initiator_url_posttask: tentative/initiator-url/post-task.html
-scheduler.postTask(function() {load_image(label, img);});
-```
-
-From [`tentative/initiator-url/promise.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/promise.html):
-
-```js
-const label = "initiator_url_promise";
-// blue.png?initiator_url_promise: tentative/initiator-url/promise.html
-Promise.resolve().then(function() {load_image(label, img);});
-```
-
 From [`tentative/initiator-url/event-handler.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/event-handler.html):
 
 ```js
@@ -261,20 +245,6 @@ frame.onload = () => {
   load_image(label, img2, "red.png");
 };
 const label = "initiator_url_eventhandler";
-```
-
-From [`tentative/initiator-url/iframe-post-message.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/iframe-post-message.html):
-
-```js
-const channel = new MessageChannel();
-frame.addEventListener("load", () => {
-  frame.contentWindow.postMessage("port", "*", [channel.port2]);
-});
-const label = "initiator_url_iframe_postmessage";
-// blue.png?initiator_url_iframe_postmessage: tentative/initiator-url/iframe-post-message.html
-channel.port1.onmessage = e => {
-  load_image(label, img);
-}
 ```
 
 ### 3.5 Module scripts
