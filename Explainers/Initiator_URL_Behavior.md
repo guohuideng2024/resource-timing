@@ -57,9 +57,9 @@ Chromium plans to run an origin trial, so this behavior is not final and may
 change based on feedback.
 
 All the tests are in
-[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). In the examples, all files
-are at `https://example.com/`. A comment `initiatorUrl: "…"` shows the
-`initiatorUrl` of the resource requested on that line.
+[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). The examples
+are excerpts from these tests and their helper files. Expected values are
+URL paths; the actual `initiatorUrl` is the absolute URL on the test server.
 
 ### 3.2 Resources in HTML markup
 
@@ -74,17 +74,33 @@ document's URL as their initiator. This includes:
 
 Elements that script creates or modifies are covered in [section 3.4](#34-resources-requested-by-javascript).
 
-Example:
+Examples:
+
+From [`tentative/initiator-url/static-resource.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/static-resource.html):
 
 ```html
-<!-- https://example.com/page.html -->
-<script src="a.js"></script>          <!-- initiatorUrl: "https://example.com/page.html" -->
-<link rel="stylesheet" href="s.css">  <!-- initiatorUrl: "https://example.com/page.html" -->
-<img src="i.png">                     <!-- initiatorUrl: "https://example.com/page.html" -->
+<script src="../../resources/empty.js?blocking"></script>
+<link rel="preload" href="../../resources/display_paragraph.js" as="script">
+<script async src="../../resources/empty.js?async"></script>
+<script defer src="../../resources/empty.js?deferred"></script>
+<script type="module" src="../../resources/empty.js?module"></script>
+<link rel="stylesheet" href="../../resources/empty_style.css?link">
 <style>
-  body { background: url(bg.png); }   /* initiatorUrl: "https://example.com/page.html" */
+body {
+  background-image: url("/images/blue.png?inline-style");
+  font-family: remoteFont, sans-serif;
+}
+@font-face {
+  font-family: remoteFont;
+  src: url("/fonts/Ahem.ttf?initiator-html");
+}
 </style>
+<img src="/images/blue.png?using-Img-tag"
+     alt="Sample Image for testing initiator Attribute">
+<iframe src="../../resources/green.html"></iframe>
 ```
+
+Expected `initiatorUrl` of every resource above: `/resource-timing/tentative/initiator-url/static-resource.html`
 
 Tests:
 
@@ -100,24 +116,49 @@ Tests:
 - The stylesheet itself follows the rules for markup ([section 3.2](#32-resources-in-html-markup)) or for
   JavaScript ([section 3.4](#34-resources-requested-by-javascript)), depending on how it was inserted.
 
-Example:
+Examples:
 
-```css
-/* https://example.com/s.css */
-@import "other.css";                             /* initiatorUrl: "https://example.com/s.css" */
-@font-face { font-family: f; src: url(f.ttf); }  /* initiatorUrl: "https://example.com/s.css" */
-body { background: url(bg.png); }                /* initiatorUrl: "https://example.com/s.css" */
-```
+From [`tentative/initiator-url/stylesheet-static.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/stylesheet-static.html):
 
 ```html
-<!-- https://example.com/page.html -->
-<script>
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "s.css";
-  document.head.appendChild(link);  // initiatorUrl: "https://example.com/page.html"
-</script>
+<link rel="stylesheet" href="/resource-timing/resources/nested-initiator.css">
 ```
+
+From [`resources/nested-initiator.css`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/nested-initiator.css):
+
+```css
+@import "resource_timing_test0.css?label=initiator";
+@font-face {
+    font-family: remoteFont;
+    src: url('/fonts/Ahem.ttf?label=initiator');
+}
+ol {
+    font-family: remoteFont;
+    list-style-image: url('blue.png?label=initiator');
+}
+```
+
+Expected `initiatorUrl`:
+
+- `resource_timing_test0.css?label=initiator`: `/resource-timing/resources/nested-initiator.css`
+- `Ahem.ttf?label=initiator`: `/resource-timing/resources/nested-initiator.css`
+- `blue.png?label=initiator`: `/resource-timing/resources/nested-initiator.css`
+
+From [`tentative/initiator-url/stylesheet-dynamic.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/stylesheet-dynamic.html):
+
+```js
+const link = document.createElement("link");
+link.rel = "stylesheet";
+link.href = "/resource-timing/resources/nested-dynamic-initiator.css";
+document.head.appendChild(link);
+```
+
+Expected `initiatorUrl`:
+
+- `nested-dynamic-initiator.css`: `/resource-timing/tentative/initiator-url/stylesheet-dynamic.html`
+- `resource_timing_test0.css?label=dynamic-initiator`: `/resource-timing/resources/nested-dynamic-initiator.css`
+- `Ahem.ttf?label=dynamic-initiator`: `/resource-timing/resources/nested-dynamic-initiator.css`
+- `blue.png?label=dynamic-initiator`: `/resource-timing/resources/nested-dynamic-initiator.css`
 
 Tests:
 
@@ -145,22 +186,38 @@ other scripts.
 - A resource requested by an external classic script reports that script's URL.
 - Calling a function defined in another script does not change the initiator.
 
-Example:
+Examples:
 
-```html
-<!-- https://example.com/page.html -->
-<script src="lib.js"></script>     <!-- lib.js defines loadImage() -->
-<script>
-  fetch("a.json");                 // initiatorUrl: "https://example.com/page.html"
-  loadImage("b.png");              // initiatorUrl: "https://example.com/page.html"
-</script>
-<script src="loader.js"></script>
-```
+From [`tentative/initiator-url/inline-script.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/inline-script.html):
 
 ```js
-// https://example.com/loader.js
-fetch("c.json");                   // initiatorUrl: "https://example.com/loader.js"
+const label = "no_cache_inline_script";
+const img = document.createElement("img");
+img.src = "/images/blue.png?" + label;
+document.body.appendChild(img);
 ```
+
+Expected `initiatorUrl`:
+
+- `blue.png?no_cache_inline_script`: `/resource-timing/tentative/initiator-url/inline-script.html`
+
+From [`tentative/initiator-url/external-script.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/external-script.html):
+
+```html
+<script src="../../resources/loading-resources.js"></script>
+```
+
+From [`resources/loading-resources.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/loading-resources.js):
+
+```js
+var img = document.createElement("img");
+img.src = "/images/blue.png?no_cache";
+document.body.appendChild(img);
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?no_cache`: `/resource-timing/resources/loading-resources.js`
 
 Tests:
 
@@ -185,25 +242,82 @@ another script. Covered callbacks:
   that registered the handler, not by the sender of the message (for example,
   an iframe).
 
-Example:
+Examples:
 
-```html
-<!-- https://example.com/page.html -->
-<script src="lib.js"></script>  <!-- lib.js defines loadImage() -->
-<script>
-  // initiatorUrl: "https://example.com/page.html"
-  setTimeout(() => loadImage("a.png"), 0);
+From [`resources/loading-resource-lib.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/loading-resource-lib.js):
 
-  // initiatorUrl: "https://example.com/page.html"
-  scheduler.postTask(() => fetch("b.json"));
-
-  // initiatorUrl: "https://example.com/page.html"
-  Promise.resolve().then(() => fetch("c.json"));
-
-  // initiatorUrl: "https://example.com/page.html"
-  window.addEventListener("load", () => fetch("d.json"));
-</script>
+```js
+async function load_image(label, img_element, image_to_load = "blue.png") {
+  const url = "/images/" + image_to_load + "?" + label;
+  const response = await fetch(url);
 ```
+
+From [`tentative/initiator-url/set-timeout.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/set-timeout.html):
+
+```js
+const label = "initiator_url_settimeout";
+setTimeout(function() {load_image(label, img);}, 0);
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_settimeout`: `/resource-timing/tentative/initiator-url/set-timeout.html`
+
+From [`tentative/initiator-url/post-task.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/post-task.html):
+
+```js
+const label = "initiator_url_posttask";
+scheduler.postTask(function() {load_image(label, img);});
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_posttask`: `/resource-timing/tentative/initiator-url/post-task.html`
+
+From [`tentative/initiator-url/promise.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/promise.html):
+
+```js
+const label = "initiator_url_promise";
+Promise.resolve().then(function() {load_image(label, img);});
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_promise`: `/resource-timing/tentative/initiator-url/promise.html`
+
+From [`tentative/initiator-url/event-handler.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/event-handler.html):
+
+```js
+frame.addEventListener("load", () => {
+  load_image(label, img1, "blue.png");
+});
+frame.onload = () => {
+  load_image(label, img2, "red.png");
+};
+const label = "initiator_url_eventhandler";
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_eventhandler`: `/resource-timing/tentative/initiator-url/event-handler.html`
+- `red.png?initiator_url_eventhandler`: `/resource-timing/tentative/initiator-url/event-handler.html`
+
+From [`tentative/initiator-url/iframe-post-message.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/iframe-post-message.html):
+
+```js
+const channel = new MessageChannel();
+frame.addEventListener("load", () => {
+  frame.contentWindow.postMessage("port", "*", [channel.port2]);
+});
+const label = "initiator_url_iframe_postmessage";
+channel.port1.onmessage = e => {
+  load_image(label, img);
+}
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_iframe_postmessage`: `/resource-timing/tentative/initiator-url/iframe-post-message.html`
 
 Tests:
 
@@ -234,31 +348,46 @@ Tests:
 - A dynamic `import()` in an external classic script reports that classic
   script's URL.
 
-Example:
+Examples:
+
+From [`tentative/initiator-url/module-script-from-document.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-document.html):
 
 ```html
-<!-- https://example.com/page.html -->
+<script type="module" src="/resource-timing/resources/module-script-imported.js?label=document-src"></script>
 <script type="module">
-  import "./a.mjs";   // initiatorUrl: "https://example.com/page.html"
-  import("./b.mjs");  // initiatorUrl: "https://example.com/page.html"
+import "/resource-timing/resources/module-script-imported.js?label=document-static";
 </script>
-<script src="classic.js"></script>
+<script>
+import("/resource-timing/resources/module-script-imported.js?label=document-dynamic");
 ```
 
-```js
-// https://example.com/a.mjs
-import "./c.mjs";     // initiatorUrl: "https://example.com/a.mjs"
-import("./d.mjs");    // initiatorUrl: "https://example.com/a.mjs"
-const script = document.createElement("script");
-script.type = "module";
-script.src = "./e.mjs";
-document.head.appendChild(script);  // initiatorUrl: "https://example.com/a.mjs"
-```
+Expected `initiatorUrl`:
+
+- `module-script-imported.js?label=document-src`: `/resource-timing/tentative/initiator-url/module-script-from-document.html`
+- `module-script-imported.js?label=document-static`: `/resource-timing/tentative/initiator-url/module-script-from-document.html`
+- `module-script-imported.js?label=document-dynamic`: `/resource-timing/tentative/initiator-url/module-script-from-document.html`
+
+From [`resources/module-script-importer-module-dynamic.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/module-script-importer-module-dynamic.js):
 
 ```js
-// https://example.com/classic.js (a classic script)
-import("./f.mjs");    // initiatorUrl: "https://example.com/classic.js"
+import './module-script-imported.js?label=dynamic-module-importer-static';
+import('./module-script-imported.js?label=dynamic-module-importer-dynamic');
 ```
+
+Expected `initiatorUrl`:
+
+- `module-script-imported.js?label=dynamic-module-importer-static`: `/resource-timing/resources/module-script-importer-module-dynamic.js`
+- `module-script-imported.js?label=dynamic-module-importer-dynamic`: `/resource-timing/resources/module-script-importer-module-dynamic.js`
+
+From [`resources/module-script-importer-classic.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/module-script-importer-classic.js):
+
+```js
+import('/resource-timing/resources/module-script-imported.js?label=classic-importer-dynamic');
+```
+
+Expected `initiatorUrl`:
+
+- `module-script-imported.js?label=classic-importer-dynamic`: `/resource-timing/resources/module-script-importer-classic.js`
 
 Tests:
 
@@ -279,21 +408,36 @@ script scheduled a `setTimeout()` callback that started it.
 The top-level scripts of shared workers and service workers do not produce a
 Resource Timing entry today, so they have no `initiatorUrl`.
 
-Example:
+Examples:
 
-```html
-<!-- https://example.com/page.html -->
-<script>
-  new Worker("w1.js");                       // initiatorUrl: "https://example.com/page.html"
-  setTimeout(() => new Worker("w2.js"), 0);  // initiatorUrl: "https://example.com/page.html"
-</script>
-<script src="starter.js"></script>
-```
+From [`tentative/initiator-url/dedicated-worker-script.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/dedicated-worker-script.html):
 
 ```js
-// https://example.com/starter.js
-new Worker("w3.js");                         // initiatorUrl: "https://example.com/starter.js"
+new Worker(scriptUrl("classic-worker-from-document"));
+new Worker(scriptUrl("module-worker-from-document"), {type: "module"});
+setTimeout(startDedicatedWorkers, 0);
 ```
+
+From [`resources/initiator-url-dedicated-worker-start.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/initiator-url-dedicated-worker-start.js):
+
+```js
+new Worker(workerScriptUrl('classic-worker-from-js'));
+new Worker(workerScriptUrl('module-worker-from-js'), {type: 'module'});
+function startDedicatedWorkers() {
+  new Worker(workerScriptUrl('classic-worker-from-setTimeout'));
+  new Worker(workerScriptUrl('module-worker-from-setTimeout'),
+             {type: 'module'});
+}
+```
+
+Expected `initiatorUrl`:
+
+- `initiator-url-worker.js?label=classic-worker-from-document`: `/resource-timing/tentative/initiator-url/dedicated-worker-script.html`
+- `initiator-url-worker.js?label=module-worker-from-document`: `/resource-timing/tentative/initiator-url/dedicated-worker-script.html`
+- `initiator-url-worker.js?label=classic-worker-from-js`: `/resource-timing/resources/initiator-url-dedicated-worker-start.js`
+- `initiator-url-worker.js?label=module-worker-from-js`: `/resource-timing/resources/initiator-url-dedicated-worker-start.js`
+- `initiator-url-worker.js?label=classic-worker-from-setTimeout`: `/resource-timing/tentative/initiator-url/dedicated-worker-script.html`
+- `initiator-url-worker.js?label=module-worker-from-setTimeout`: `/resource-timing/tentative/initiator-url/dedicated-worker-script.html`
 
 Tests:
 
@@ -308,15 +452,54 @@ Tests:
 - Modules imported by a module worker, statically or dynamically, report the
   worker script's URL.
 
-Example:
+Examples:
+
+From [`tentative/initiator-url/direct.any.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/direct.any.js):
 
 ```js
-// https://example.com/worker.js
-importScripts("helper.js");             // initiatorUrl: "https://example.com/worker.js"
-fetch("a.json");                        // initiatorUrl: "https://example.com/worker.js"
-setTimeout(() => fetch("b.json"), 0);   // initiatorUrl: "https://example.com/worker.js"
-onmessage = () => fetch("c.json");      // initiatorUrl: "https://example.com/worker.js"
+importScripts("../../resources/loading-resource-lib.js?direct_any")
+const label = "initiator_url_direct_worker";
+const imageResource = "/images/blue.png?"+label;
+fetch_in_function(imageResource);
 ```
+
+Expected `initiatorUrl`:
+
+- `loading-resource-lib.js?direct_any`: `/resource-timing/tentative/initiator-url/direct.any.worker.js`
+- `blue.png?initiator_url_direct_worker`: `/resource-timing/tentative/initiator-url/direct.any.worker.js`
+
+From [`tentative/initiator-url/set-timeout.any.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/set-timeout.any.js):
+
+```js
+const label = "initiator_url_settimeout_worker";
+setTimeout(function(){fetch_in_function(resource)}, 10);
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_settimeout_worker`: `/resource-timing/tentative/initiator-url/set-timeout.any.worker.js`
+
+From [`resources/message-handler-in-worker.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/message-handler-in-worker.js):
+
+```js
+const label = "initiator_url_message_handler_worker";
+self.onmessage = async function (event) {
+  fetch_in_function(resource);
+```
+
+Expected `initiatorUrl`:
+
+- `blue.png?initiator_url_message_handler_worker`: `/resource-timing/resources/message-handler-in-worker.js`
+
+From [`resources/module-script-worker.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/module-script-worker.js):
+
+```js
+import './module-script-imported.js?label=worker-importer-static';
+```
+
+Expected `initiatorUrl`:
+
+- `module-script-imported.js?label=worker-importer-static`: `/resource-timing/resources/module-script-worker.js`
 
 Tests:
 
