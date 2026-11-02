@@ -40,6 +40,10 @@ breaks interoperability.
 
 ## 3. Behavior
 
+In the examples, a comment such as `// a.png: page.html` means that the
+`initiatorUrl` of `a.png` is the URL of `page.html`. File names stand for
+absolute URLs.
+
 ### 3.1 Resources in HTML markup
 
 Resources requested by the HTML parser have the document's URL as their
@@ -51,7 +55,21 @@ initiator. This includes:
 - Resources referenced from an inline `<style>` element, such as a background
   image or an `@font-face` font.
 
-Tests: `static-resource.html`.
+Example:
+
+```html
+<!-- page.html -->
+<script src="a.js"></script>          <!-- a.js: page.html -->
+<link rel="stylesheet" href="s.css">  <!-- s.css: page.html -->
+<img src="i.png">                     <!-- i.png: page.html -->
+<style>
+  body { background: url(bg.png); }   /* bg.png: page.html */
+</style>
+```
+
+Tests:
+
+- [static-resource.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/static-resource.html)
 
 ### 3.2 Resources referenced by CSS
 
@@ -63,7 +81,30 @@ Tests: `static-resource.html`.
 - The stylesheet itself follows the rules for markup (section 3.1) or for
   JavaScript (section 3.3), depending on how it was inserted.
 
-Tests: `stylesheet-static.html`, `stylesheet-dynamic.html`.
+Example:
+
+```css
+/* s.css */
+@import "other.css";                               /* other.css: s.css */
+@font-face { font-family: f; src: url(f.ttf); }    /* f.ttf: s.css */
+body { background: url(bg.png); }                  /* bg.png: s.css */
+```
+
+```html
+<!-- page.html -->
+<script>
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "s.css";
+  document.head.appendChild(link);  // s.css: page.html
+                                    // resources in s.css: s.css
+</script>
+```
+
+Tests:
+
+- [stylesheet-static.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/stylesheet-static.html)
+- [stylesheet-dynamic.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/stylesheet-dynamic.html)
 
 ### 3.3 Resources requested by JavaScript
 
@@ -86,7 +127,23 @@ other scripts.
 - A resource requested by an external classic script reports that script's URL.
 - Calling a function defined in another script does not change the initiator.
 
-Tests: `inline-script.html`, `external-script.html`.
+Example:
+
+```html
+<!-- page.html -->
+<script src="lib.js"></script>     <!-- lib.js defines loadImage() -->
+<script>
+  fetch("a.json");                 // a.json: page.html
+  loadImage("b.png");              // b.png: page.html, not lib.js
+</script>
+<script src="loader.js"></script>  <!-- loader.js runs fetch("c.json") -->
+                                   <!-- c.json: loader.js -->
+```
+
+Tests:
+
+- [inline-script.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/inline-script.html)
+- [external-script.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/external-script.html)
 
 #### 3.3.2 Callbacks
 
@@ -106,18 +163,35 @@ another script. Covered callbacks:
   that registered the handler, not by the sender of the message (for example,
   an iframe).
 
-For example, suppose `page.html` contains an inline script that calls
-`setTimeout(loadImage, 0)`, and `loadImage()` is defined in `lib.js`. The image
-fetched by `loadImage()` reports `page.html` as its initiator, because the
-inline script in `page.html` scheduled the callback. `lib.js` only provides the
-function.
+Example:
 
-Tests: `set-timeout.html`, `set-interval.html`,
-`request-animation-frame.html`, `request-idle-callback.html`,
-`post-task.html`, `external-script-in-posted-task.html`, `promise.html`,
-`queue-microtask.html`, `event-handler.html`,
-`event-handler-overwritten.html`, `xml-http-request.html`,
-`iframe-post-message.html`.
+```html
+<!-- page.html -->
+<script src="lib.js"></script>  <!-- lib.js defines loadImage() -->
+<script>
+  setTimeout(() => loadImage("a.png"), 0);   // a.png: page.html
+  scheduler.postTask(() => fetch("b.json")); // b.json: page.html
+  Promise.resolve().then(() => fetch("c.json"));
+                                             // c.json: page.html
+  window.addEventListener("load", () => fetch("d.json"));
+                                             // d.json: page.html
+</script>
+```
+
+Tests:
+
+- [set-timeout.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/set-timeout.html)
+- [set-interval.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/set-interval.html)
+- [request-animation-frame.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/request-animation-frame.html)
+- [request-idle-callback.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/request-idle-callback.html)
+- [post-task.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/post-task.html)
+- [external-script-in-posted-task.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/external-script-in-posted-task.html)
+- [promise.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/promise.html)
+- [queue-microtask.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/queue-microtask.html)
+- [event-handler.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/event-handler.html)
+- [event-handler-overwritten.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/event-handler-overwritten.html)
+- [xml-http-request.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/xml-http-request.html)
+- [iframe-post-message.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/iframe-post-message.html)
 
 ### 3.4 Module scripts
 
@@ -133,9 +207,37 @@ Tests: `set-timeout.html`, `set-interval.html`,
 - A dynamic `import()` in an external classic script reports that classic
   script's URL.
 
-Tests: `module-script-from-document.html`,
-`module-script-from-static-importer.html`,
-`module-script-from-dynamic-importer.html`.
+Example:
+
+```html
+<!-- page.html -->
+<script type="module">
+  import "./a.mjs";   // a.mjs: page.html
+  import("./b.mjs");  // b.mjs: page.html
+</script>
+<script src="classic.js"></script>
+```
+
+```js
+// a.mjs
+import "./c.mjs";     // c.mjs: a.mjs
+import("./d.mjs");    // d.mjs: a.mjs
+const script = document.createElement("script");
+script.type = "module";
+script.src = "./e.mjs";
+document.head.appendChild(script);  // e.mjs: a.mjs
+```
+
+```js
+// classic.js (a classic script)
+import("./f.mjs");    // f.mjs: classic.js
+```
+
+Tests:
+
+- [module-script-from-document.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-document.html)
+- [module-script-from-static-importer.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-static-importer.html)
+- [module-script-from-dynamic-importer.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-dynamic-importer.html)
 
 ### 3.5 Workers
 
@@ -150,7 +252,21 @@ script scheduled a `setTimeout()` callback that started it.
 The top-level scripts of shared workers and service workers do not produce a
 Resource Timing entry today, so they have no `initiatorUrl`.
 
-Tests: `dedicated-worker-script.html`.
+Example:
+
+```html
+<!-- page.html -->
+<script>
+  new Worker("w1.js");                           // w1.js: page.html
+  setTimeout(() => new Worker("w2.js"), 0);      // w2.js: page.html
+</script>
+<script src="starter.js"></script>  <!-- starter.js runs new Worker("w3.js") -->
+                                    <!-- w3.js: starter.js -->
+```
+
+Tests:
+
+- [dedicated-worker-script.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/dedicated-worker-script.html)
 
 #### 3.5.2 Resources requested inside a worker
 
@@ -161,10 +277,27 @@ Tests: `dedicated-worker-script.html`.
 - Modules imported by a module worker, statically or dynamically, report the
   worker script's URL.
 
-Tests: `direct.any.js`, `set-timeout.any.js`, `set-interval.any.js`,
-`promise.any.js`, `post-task.any.js`, `queue-microtask.any.js`,
-`post-message-worker.html`, `post-message-shared-worker.html`,
-`module-script-from-worker.html`.
+Example:
+
+```js
+// worker.js
+importScripts("helper.js");             // helper.js: worker.js
+fetch("a.json");                        // a.json: worker.js
+setTimeout(() => fetch("b.json"), 0);   // b.json: worker.js
+onmessage = () => fetch("c.json");      // c.json: worker.js
+```
+
+Tests:
+
+- [direct.any.js](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/direct.any.js)
+- [set-timeout.any.js](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/set-timeout.any.js)
+- [set-interval.any.js](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/set-interval.any.js)
+- [promise.any.js](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/promise.any.js)
+- [post-task.any.js](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/post-task.any.js)
+- [queue-microtask.any.js](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/queue-microtask.any.js)
+- [post-message-worker.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/post-message-worker.html)
+- [post-message-shared-worker.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/post-message-shared-worker.html)
+- [module-script-from-worker.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-worker.html)
 
 ## 4. When initiatorUrl is empty
 
