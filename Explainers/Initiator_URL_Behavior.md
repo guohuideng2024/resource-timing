@@ -59,7 +59,7 @@ change based on feedback.
 All the tests are in
 [resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). In the
 examples, a comment `<resource>: <initiatorUrl>` gives the expected
-`initiatorUrl` of the resource requested on the next line.
+`initiatorUrl` of the resource referenced on the next line.
 
 ### 3.2 Resources in HTML markup
 
@@ -137,8 +137,8 @@ From [`tentative/initiator-url/stylesheet-dynamic.html`](https://source.chromium
 ```js
 const link = document.createElement("link");
 link.rel = "stylesheet";
-link.href = "/resource-timing/resources/nested-dynamic-initiator.css";
 // nested-dynamic-initiator.css: tentative/initiator-url/stylesheet-dynamic.html
+link.href = "/resource-timing/resources/nested-dynamic-initiator.css";
 // initiatorUrl of the resources in resources/nested-dynamic-initiator.css: resources/nested-dynamic-initiator.css
 document.head.appendChild(link);
 ```
