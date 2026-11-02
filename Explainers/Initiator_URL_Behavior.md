@@ -40,6 +40,9 @@ breaks interoperability.
 
 ## 3. Behavior
 
+All the tests are in
+[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/).
+
 In the examples, a comment such as `// a.png: page.html` means that the
 `initiatorUrl` of `a.png` is the URL of `page.html`. File names stand for
 absolute URLs.
