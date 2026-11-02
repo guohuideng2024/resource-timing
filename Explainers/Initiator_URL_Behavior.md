@@ -59,9 +59,11 @@ change based on feedback.
 All the tests are in
 [resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). The examples
 are excerpts from these tests and their helper files. The only lines added
-are `initiatorUrl` comments, which give the expected `initiatorUrl` of the
-resource requested on the next line, unless the comment says otherwise. The
-path is relative to `/resource-timing/`; the actual value is the absolute URL.
+are comments that give the expected `initiatorUrl`. A comment
+`<resource>: <initiatorUrl>` is about the resource requested on the next line,
+named as in the test. Other comments say which resources they cover.
+`initiatorUrl` paths are relative to `/resource-timing/`; the actual value is
+the absolute URL.
 
 ### 3.2 Resources in HTML markup
 
@@ -142,7 +144,7 @@ From [`tentative/initiator-url/stylesheet-dynamic.html`](https://source.chromium
 const link = document.createElement("link");
 link.rel = "stylesheet";
 link.href = "/resource-timing/resources/nested-dynamic-initiator.css";
-// initiatorUrl: tentative/initiator-url/stylesheet-dynamic.html
+// nested-dynamic-initiator.css: tentative/initiator-url/stylesheet-dynamic.html
 // initiatorUrl of the resources in the stylesheet: resources/nested-dynamic-initiator.css
 document.head.appendChild(link);
 ```
@@ -175,7 +177,7 @@ From [`tentative/initiator-url/inline-script.html`](https://source.chromium.org/
 ```js
 const label = "no_cache_inline_script";
 const img = document.createElement("img");
-// initiatorUrl: tentative/initiator-url/inline-script.html
+// blue.png?no_cache_inline_script: tentative/initiator-url/inline-script.html
 img.src = "/images/blue.png?" + label;
 document.body.appendChild(img);
 ```
@@ -190,7 +192,7 @@ From [`resources/loading-resources.js`](https://source.chromium.org/chromium/chr
 
 ```js
 var img = document.createElement("img");
-// initiatorUrl: resources/loading-resources.js
+// blue.png?no_cache: resources/loading-resources.js
 img.src = "/images/blue.png?no_cache";
 document.body.appendChild(img);
 ```
@@ -227,7 +229,7 @@ From [`tentative/initiator-url/set-timeout.html`](https://source.chromium.org/ch
 
 ```js
 const label = "initiator_url_settimeout";
-// initiatorUrl: tentative/initiator-url/set-timeout.html
+// blue.png?initiator_url_settimeout: tentative/initiator-url/set-timeout.html
 setTimeout(function() {load_image(label, img);}, 0);
 ```
 
@@ -235,7 +237,7 @@ From [`tentative/initiator-url/post-task.html`](https://source.chromium.org/chro
 
 ```js
 const label = "initiator_url_posttask";
-// initiatorUrl: tentative/initiator-url/post-task.html
+// blue.png?initiator_url_posttask: tentative/initiator-url/post-task.html
 scheduler.postTask(function() {load_image(label, img);});
 ```
 
@@ -243,18 +245,18 @@ From [`tentative/initiator-url/promise.html`](https://source.chromium.org/chromi
 
 ```js
 const label = "initiator_url_promise";
-// initiatorUrl: tentative/initiator-url/promise.html
+// blue.png?initiator_url_promise: tentative/initiator-url/promise.html
 Promise.resolve().then(function() {load_image(label, img);});
 ```
 
 From [`tentative/initiator-url/event-handler.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/event-handler.html):
 
 ```js
-// initiatorUrl: tentative/initiator-url/event-handler.html
+// blue.png?initiator_url_eventhandler: tentative/initiator-url/event-handler.html
 frame.addEventListener("load", () => {
   load_image(label, img1, "blue.png");
 });
-// initiatorUrl: tentative/initiator-url/event-handler.html
+// red.png?initiator_url_eventhandler: tentative/initiator-url/event-handler.html
 frame.onload = () => {
   load_image(label, img2, "red.png");
 };
@@ -269,7 +271,7 @@ frame.addEventListener("load", () => {
   frame.contentWindow.postMessage("port", "*", [channel.port2]);
 });
 const label = "initiator_url_iframe_postmessage";
-// initiatorUrl: tentative/initiator-url/iframe-post-message.html
+// blue.png?initiator_url_iframe_postmessage: tentative/initiator-url/iframe-post-message.html
 channel.port1.onmessage = e => {
   load_image(label, img);
 }
@@ -294,30 +296,30 @@ Examples:
 From [`tentative/initiator-url/module-script-from-document.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-document.html):
 
 ```html
-<!-- initiatorUrl: tentative/initiator-url/module-script-from-document.html -->
+<!-- module-script-imported.js?label=document-src: tentative/initiator-url/module-script-from-document.html -->
 <script type="module" src="/resource-timing/resources/module-script-imported.js?label=document-src"></script>
 <script type="module">
-// initiatorUrl: tentative/initiator-url/module-script-from-document.html
+// module-script-imported.js?label=document-static: tentative/initiator-url/module-script-from-document.html
 import "/resource-timing/resources/module-script-imported.js?label=document-static";
 </script>
 <script>
-// initiatorUrl: tentative/initiator-url/module-script-from-document.html
+// module-script-imported.js?label=document-dynamic: tentative/initiator-url/module-script-from-document.html
 import("/resource-timing/resources/module-script-imported.js?label=document-dynamic");
 ```
 
 From [`resources/module-script-importer-module-dynamic.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/module-script-importer-module-dynamic.js):
 
 ```js
-// initiatorUrl: resources/module-script-importer-module-dynamic.js
+// module-script-imported.js?label=dynamic-module-importer-static: resources/module-script-importer-module-dynamic.js
 import './module-script-imported.js?label=dynamic-module-importer-static';
-// initiatorUrl: resources/module-script-importer-module-dynamic.js
+// module-script-imported.js?label=dynamic-module-importer-dynamic: resources/module-script-importer-module-dynamic.js
 import('./module-script-imported.js?label=dynamic-module-importer-dynamic');
 ```
 
 From [`resources/module-script-importer-classic.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/module-script-importer-classic.js):
 
 ```js
-// initiatorUrl: resources/module-script-importer-classic.js
+// module-script-imported.js?label=classic-importer-dynamic: resources/module-script-importer-classic.js
 import('/resource-timing/resources/module-script-imported.js?label=classic-importer-dynamic');
 ```
 
@@ -339,9 +341,9 @@ Examples:
 From [`tentative/initiator-url/dedicated-worker-script.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/dedicated-worker-script.html):
 
 ```js
-// initiatorUrl: tentative/initiator-url/dedicated-worker-script.html
+// initiator-url-worker.js?label=classic-worker-from-document: tentative/initiator-url/dedicated-worker-script.html
 new Worker(scriptUrl("classic-worker-from-document"));
-// initiatorUrl: tentative/initiator-url/dedicated-worker-script.html
+// initiator-url-worker.js?label=module-worker-from-document: tentative/initiator-url/dedicated-worker-script.html
 new Worker(scriptUrl("module-worker-from-document"), {type: "module"});
 // initiatorUrl of the workers started by startDedicatedWorkers(): tentative/initiator-url/dedicated-worker-script.html
 setTimeout(startDedicatedWorkers, 0);
@@ -350,14 +352,14 @@ setTimeout(startDedicatedWorkers, 0);
 From [`resources/initiator-url-dedicated-worker-start.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/initiator-url-dedicated-worker-start.js):
 
 ```js
-// initiatorUrl: resources/initiator-url-dedicated-worker-start.js
+// initiator-url-worker.js?label=classic-worker-from-js: resources/initiator-url-dedicated-worker-start.js
 new Worker(workerScriptUrl('classic-worker-from-js'));
-// initiatorUrl: resources/initiator-url-dedicated-worker-start.js
+// initiator-url-worker.js?label=module-worker-from-js: resources/initiator-url-dedicated-worker-start.js
 new Worker(workerScriptUrl('module-worker-from-js'), {type: 'module'});
 function startDedicatedWorkers() {
-  // initiatorUrl: tentative/initiator-url/dedicated-worker-script.html, which scheduled this callback
+  // initiator-url-worker.js?label=classic-worker-from-setTimeout: tentative/initiator-url/dedicated-worker-script.html
   new Worker(workerScriptUrl('classic-worker-from-setTimeout'));
-  // initiatorUrl: tentative/initiator-url/dedicated-worker-script.html, which scheduled this callback
+  // initiator-url-worker.js?label=module-worker-from-setTimeout: tentative/initiator-url/dedicated-worker-script.html
   new Worker(workerScriptUrl('module-worker-from-setTimeout'),
              {type: 'module'});
 }
@@ -377,11 +379,11 @@ Examples:
 From [`tentative/initiator-url/direct.any.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/direct.any.js):
 
 ```js
-// initiatorUrl: tentative/initiator-url/direct.any.worker.js
+// loading-resource-lib.js?direct_any: tentative/initiator-url/direct.any.worker.js
 importScripts("../../resources/loading-resource-lib.js?direct_any")
 const label = "initiator_url_direct_worker";
 const imageResource = "/images/blue.png?"+label;
-// initiatorUrl: tentative/initiator-url/direct.any.worker.js
+// blue.png?initiator_url_direct_worker: tentative/initiator-url/direct.any.worker.js
 fetch_in_function(imageResource);
 ```
 
@@ -389,7 +391,7 @@ From [`tentative/initiator-url/set-timeout.any.js`](https://source.chromium.org/
 
 ```js
 const label = "initiator_url_settimeout_worker";
-// initiatorUrl: tentative/initiator-url/set-timeout.any.worker.js
+// blue.png?initiator_url_settimeout_worker: tentative/initiator-url/set-timeout.any.worker.js
 setTimeout(function(){fetch_in_function(resource)}, 10);
 ```
 
@@ -397,7 +399,7 @@ From [`resources/message-handler-in-worker.js`](https://source.chromium.org/chro
 
 ```js
 const label = "initiator_url_message_handler_worker";
-// initiatorUrl: resources/message-handler-in-worker.js
+// blue.png?initiator_url_message_handler_worker: resources/message-handler-in-worker.js
 self.onmessage = async function (event) {
   fetch_in_function(resource);
 ```
@@ -405,7 +407,7 @@ self.onmessage = async function (event) {
 From [`resources/module-script-worker.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/module-script-worker.js):
 
 ```js
-// initiatorUrl: resources/module-script-worker.js
+// module-script-imported.js?label=worker-importer-static: resources/module-script-worker.js
 import './module-script-imported.js?label=worker-importer-static';
 ```
 
