@@ -38,34 +38,9 @@ change the behavior described here. As a last resort, the spec could allow
 more than one value for that case, but this is highly undesirable because it
 breaks interoperability.
 
-## 3. Key concept: the initiating script
+## 3. Behavior
 
-When a resource is requested while script is running, the initiator is **not**
-the script that contains the function that made the request. Instead, it is
-the script that started the current chain of execution. This document calls it
-the *initiating script*.
-
-- When a classic script or module script is evaluated, it becomes the
-  initiating script for everything it runs synchronously, including calls into
-  functions defined in other scripts.
-- An inline script is identified by the URL of its document.
-- When script schedules a callback, the callback keeps the initiating script of
-  the code that scheduled it. This applies to timers, animation frame and idle
-  callbacks, `scheduler.postTask()`, promise reactions, microtasks, event
-  listeners and event handler attributes, and message handlers.
-
-For example, suppose `page.html` contains an inline script that calls
-`setTimeout(loadImage, 0)`, and `loadImage()` is defined in `lib.js`. The image
-fetched by `loadImage()` reports `page.html` as its initiator, because the
-inline script in `page.html` scheduled the callback. `lib.js` only provides the
-function.
-
-This makes the reported initiator stable: it points at the code that decided
-to load the resource, rather than at a shared helper library.
-
-## 4. Behavior
-
-### 4.1 Resources requested by the document's markup
+### 3.1 Resources in HTML markup
 
 Resources requested by the HTML parser have the document's URL as their
 initiator. This includes:
@@ -78,25 +53,46 @@ initiator. This includes:
 
 Tests: `static-resource.html`.
 
-### 4.2 Resources requested by script
+### 3.2 Resources referenced by CSS
 
-A resource requested while script is running has the initiating script's URL
-as its initiator (section 3). This applies whether the request is made through
-an API such as `fetch()`, or by inserting an element such as `<img>`, `<link>`,
-`<script>` or `<iframe>`.
+- Resources referenced by an external stylesheet, such as `@import` rules,
+  `@font-face` fonts and `url()` images, report the stylesheet's URL. This is
+  the same whether the stylesheet is in the markup or inserted by script.
+- Resources referenced by an inline `<style>` element report the document's
+  URL (section 3.1).
+- The stylesheet itself follows the rules for markup (section 3.1) or for
+  JavaScript (section 3.3), depending on how it was inserted.
+
+Tests: `stylesheet-static.html`, `stylesheet-dynamic.html`.
+
+### 3.3 Resources requested by JavaScript
+
+When a resource is requested while script is running, the initiator is **not**
+the script that contains the function that made the request. Instead, it is
+the script that started the current chain of execution. This document calls it
+the *initiating script*. An inline script is identified by the URL of its
+document.
+
+This applies whether the request is made through an API such as `fetch()`, or
+by inserting an element such as `<img>`, `<link>`, `<script>` or `<iframe>`.
+
+#### 3.3.1 Synchronous execution
+
+When a classic script is evaluated, it becomes the initiating script for
+everything it runs synchronously, including calls into functions defined in
+other scripts.
 
 - A resource requested by an inline script reports the document's URL.
 - A resource requested by an external classic script reports that script's URL.
 - Calling a function defined in another script does not change the initiator.
 
-Tests: `inline-script.html`, `external-script.html`,
-`external-script-in-posted-task.html`.
+Tests: `inline-script.html`, `external-script.html`.
 
-### 4.3 Resources requested in callbacks
+#### 3.3.2 Callbacks
 
-A resource requested in a callback reports the initiating script of the code
-that scheduled or registered the callback. This holds even when the callback
-function itself is defined in another script. Covered callbacks:
+A callback keeps the initiating script of the code that scheduled or
+registered it. This holds even when the callback function itself is defined in
+another script. Covered callbacks:
 
 - `setTimeout()` and `setInterval()`.
 - `requestAnimationFrame()` and `requestIdleCallback()`.
@@ -110,25 +106,20 @@ function itself is defined in another script. Covered callbacks:
   that registered the handler, not by the sender of the message (for example,
   an iframe).
 
+For example, suppose `page.html` contains an inline script that calls
+`setTimeout(loadImage, 0)`, and `loadImage()` is defined in `lib.js`. The image
+fetched by `loadImage()` reports `page.html` as its initiator, because the
+inline script in `page.html` scheduled the callback. `lib.js` only provides the
+function.
+
 Tests: `set-timeout.html`, `set-interval.html`,
 `request-animation-frame.html`, `request-idle-callback.html`,
-`post-task.html`, `promise.html`, `queue-microtask.html`,
-`event-handler.html`, `event-handler-overwritten.html`,
-`xml-http-request.html`, `iframe-post-message.html`.
+`post-task.html`, `external-script-in-posted-task.html`, `promise.html`,
+`queue-microtask.html`, `event-handler.html`,
+`event-handler-overwritten.html`, `xml-http-request.html`,
+`iframe-post-message.html`.
 
-### 4.4 Stylesheets
-
-- Resources referenced by an external stylesheet, such as `@import` rules,
-  `@font-face` fonts and `url()` images, report the stylesheet's URL.
-- Resources referenced by an inline `<style>` element report the document's
-  URL (section 4.1).
-- The stylesheet itself follows the rules above: a stylesheet in markup reports
-  the document, and a stylesheet inserted by script reports the initiating
-  script.
-
-Tests: `stylesheet-static.html`, `stylesheet-dynamic.html`.
-
-### 4.5 Module scripts
+### 3.4 Module scripts
 
 - A module loaded by the document reports the document's URL. This includes a
   `<script type="module" src>` element in markup, a static `import` in an
@@ -146,28 +137,36 @@ Tests: `module-script-from-document.html`,
 `module-script-from-static-importer.html`,
 `module-script-from-dynamic-importer.html`.
 
-### 4.6 Workers
+### 3.5 Workers
 
-- The script of a dedicated worker, classic or module, reports the initiating
-  script of the code that called `new Worker()`. For example, it is the
-  document if an inline script started the worker, an external script if that
-  script started it, and the document if an inline script scheduled a
-  `setTimeout()` callback that started it.
+#### 3.5.1 Worker scripts
+
+The script of a dedicated worker, classic or module, follows section 3.3: it
+reports the initiating script of the code that called `new Worker()`. For
+example, it is the document if an inline script started the worker, an
+external script if that script started it, and the document if an inline
+script scheduled a `setTimeout()` callback that started it.
+
+The top-level scripts of shared workers and service workers do not produce a
+Resource Timing entry today, so they have no `initiatorUrl`.
+
+Tests: `dedicated-worker-script.html`.
+
+#### 3.5.2 Resources requested inside a worker
+
 - Inside a dedicated or shared worker, resources requested by the worker's
   code report the worker script's URL. This includes `fetch()`,
   `importScripts()`, callbacks (timers, promise reactions,
-  `scheduler.postTask()`) and message handlers.
+  `scheduler.postTask()`, microtasks) and message handlers.
 - Modules imported by a module worker, statically or dynamically, report the
   worker script's URL.
-- The top-level scripts of shared workers and service workers do not produce a
-  Resource Timing entry today, so they have no `initiatorUrl`.
 
-Tests: `dedicated-worker-script.html`, `direct.any.js`, `set-timeout.any.js`,
-`set-interval.any.js`, `promise.any.js`, `post-task.any.js`,
-`queue-microtask.any.js`, `post-message-worker.html`,
-`post-message-shared-worker.html`, `module-script-from-worker.html`.
+Tests: `direct.any.js`, `set-timeout.any.js`, `set-interval.any.js`,
+`promise.any.js`, `post-task.any.js`, `queue-microtask.any.js`,
+`post-message-worker.html`, `post-message-shared-worker.html`,
+`module-script-from-worker.html`.
 
-## 5. When initiatorUrl is empty
+## 4. When initiatorUrl is empty
 
 `initiatorUrl` is the empty string when:
 
@@ -181,20 +180,20 @@ Tests: `dedicated-worker-script.html`, `direct.any.js`, `set-timeout.any.js`,
    Implementations may cover only part of the cases above and improve over
    time; partial data is still useful.
 
-## 6. Not covered
+## 5. Not covered
 
 - **`document.write()`.** Reporting an initiator for resources inserted by
   `document.write()` is not planned, because the API is deprecated. The current
   tests for it should be removed.
 
-## 7. Security and privacy
+## 6. Security and privacy
 
 `initiatorUrl` only reveals which URL caused a resource to be fetched. Like
 other detailed Resource Timing information, it is exposed only when the
 resource passes a CORS check; `Timing-Allow-Origin` alone does not expose it.
 See the explainer for the full self-review questionnaire.
 
-## 8. Alternatives considered
+## 7. Alternatives considered
 
 - **A numeric ID for each resource.** Consumers would need the IDs of all
   resources to interpret the data, which makes it harder to use.
