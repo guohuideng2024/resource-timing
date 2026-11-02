@@ -211,7 +211,7 @@ another script. Covered callbacks:
   that registered the handler, not by the sender of the message (for example,
   an iframe).
 
-**Helper used by both examples**
+**Helper used by all examples**
 
 From [`resources/loading-resource-lib.js`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/loading-resource-lib.js):
 
@@ -246,6 +246,81 @@ frame.onload = () => {
 };
 const label = "initiator_url_eventhandler";
 ```
+
+**Example 3: message handler**
+
+From [`tentative/initiator-url/iframe-post-message.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/iframe-post-message.html):
+
+```js
+const channel = new MessageChannel();
+frame.addEventListener("load", () => {
+  frame.contentWindow.postMessage("port", "*", [channel.port2]);
+});
+const label = "initiator_url_iframe_postmessage";
+// blue.png?initiator_url_iframe_postmessage: tentative/initiator-url/iframe-post-message.html
+// (the message is sent by the iframe, but the handler is registered here)
+channel.port1.onmessage = e => {
+  load_image(label, img);
+}
+```
+
+From [`resources/iframe-post-message.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/resources/iframe-post-message.html), the page loaded in the iframe:
+
+```js
+    window.addEventListener('message', e => {
+      const port = e.ports?.[0];
+      port.postMessage("hello from iframe");
+    });
+```
+
+#### 3.4.3 Design discussion: event and message handlers
+
+*This section is not part of the behavior. It explains a design decision
+behind [section 3.4.2](#342-asynchronous-execution) and asks for feedback.*
+
+For event and message handlers, there are two candidates for the initiator:
+
+- **(A)** The initiating script of the code that registered the handler. This
+  is the behavior described in [section 3.4.2](#342-asynchronous-execution).
+- **(B)** The initiating script of the code that caused the event, for example
+  the script that called `postMessage()`.
+
+We chose (A) because:
+
+- It treats registering a handler like scheduling any other callback.
+- Many events, such as `load`, network and input events, are fired by the
+  browser, so no script caused them.
+- The sender of a message may be in a cross-origin frame. Reporting its URL
+  could leak information.
+- It serves the use cases in
+  [issue #263](https://github.com/w3c/resource-timing/issues/263):
+  - Optimizing resource delivery, for example preloading resources that are
+    discovered late: the handler's code decides what to fetch, and it is the
+    same on every page load, while the event source can vary.
+  - Attributing resources to the code that brought them in, for example to
+    account for the cost of third-party scripts, or to trace a rogue request:
+    the handler's code is the code that made the request.
+
+The trade-off is that (B) would show why a fetch happened at a particular
+time, for example after waiting for a message from an iframe.
+
+**Known limitation of (A): frameworks that schedule work with messages**
+
+Some frameworks use a `MessageChannel` as a scheduler instead of
+`setTimeout()`, to avoid timer clamping. For example,
+[React's scheduler](https://github.com/facebook/react/blob/main/packages/scheduler/src/forks/Scheduler.js)
+registers one `onmessage` handler when it loads, and posts a message to it
+whenever it has work to do. Rendering and effects, including data fetching in
+`useEffect()`, run inside that handler. Under (A), their resources report the
+script that contains React's scheduler, such as a vendor bundle.
+
+Under (B), they would instead report the script that started the work, usually
+the app's entry script. That helps only when React is bundled separately from
+the app. It still would not identify the component that requested the
+resource, because component code runs as functions called by React
+([section 3.4](#34-resources-requested-by-javascript)).
+
+Feedback on this decision is welcome.
 
 ### 3.5 Module scripts
 
