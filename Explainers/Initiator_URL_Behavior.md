@@ -40,14 +40,28 @@ breaks interoperability.
 
 ## 3. Behavior
 
+### 3.1 Coverage
+
+Resources can be fetched in many ways, and defining and implementing an
+initiator for every one of them is not practical. The goal is to cover
+enough cases for `initiatorUrl` to be useful, not every case. As the
+explainer notes, partial dependency information is still useful, so an
+implementation can cover some cases first and add more later.
+
+The rest of this section describes the cases covered so far, which are the
+common ways resources are fetched. Coverage may be extended in the future.
+For resources that are not covered, `initiatorUrl` is the empty string (see
+[section 4](#4-when-initiatorurl-is-empty) of this document).
+
+Chromium plans to run an origin trial, so this behavior is not final and may
+change based on feedback.
+
 All the tests are in
-[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/).
+[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). In the examples, all files
+are at `https://example.com/`. A comment `initiatorUrl: "…"` shows the
+`initiatorUrl` of the resource requested on that line.
 
-In the examples, all files are at `https://example.com/`. A comment
-`initiatorUrl: "…"` shows the `initiatorUrl` of the resource requested on that
-line.
-
-### 3.1 Resources in HTML markup
+### 3.2 Resources in HTML markup
 
 Resources referenced by elements in the document's HTML source have the
 document's URL as their initiator. This includes:
@@ -58,7 +72,7 @@ document's URL as their initiator. This includes:
 - Resources referenced from an inline `<style>` element, such as a background
   image or an `@font-face` font.
 
-Elements that script creates or modifies are covered in section 3.3.
+Elements that script creates or modifies are covered in [section 3.4](#34-resources-requested-by-javascript).
 
 Example:
 
@@ -76,15 +90,15 @@ Tests:
 
 - [static-resource.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/static-resource.html)
 
-### 3.2 Resources referenced by CSS
+### 3.3 Resources referenced by CSS
 
 - Resources referenced by an external stylesheet, such as `@import` rules,
   `@font-face` fonts and `url()` images, report the stylesheet's URL. This is
   the same whether the stylesheet is in the markup or inserted by script.
 - Resources referenced by an inline `<style>` element report the document's
-  URL (section 3.1).
-- The stylesheet itself follows the rules for markup (section 3.1) or for
-  JavaScript (section 3.3), depending on how it was inserted.
+  URL ([section 3.2](#32-resources-in-html-markup)).
+- The stylesheet itself follows the rules for markup ([section 3.2](#32-resources-in-html-markup)) or for
+  JavaScript ([section 3.4](#34-resources-requested-by-javascript)), depending on how it was inserted.
 
 Example:
 
@@ -110,7 +124,7 @@ Tests:
 - [stylesheet-static.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/stylesheet-static.html)
 - [stylesheet-dynamic.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/stylesheet-dynamic.html)
 
-### 3.3 Resources requested by JavaScript
+### 3.4 Resources requested by JavaScript
 
 When a resource is requested while script is running, the initiator is **not**
 the script that contains the function that made the request. Instead, it is
@@ -121,7 +135,7 @@ document.
 This applies whether the request is made through an API such as `fetch()`, or
 by inserting an element such as `<img>`, `<link>`, `<script>` or `<iframe>`.
 
-#### 3.3.1 Synchronous execution
+#### 3.4.1 Synchronous execution
 
 When a classic script is evaluated, it becomes the initiating script for
 everything it runs synchronously, including calls into functions defined in
@@ -153,7 +167,7 @@ Tests:
 - [inline-script.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/inline-script.html)
 - [external-script.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/external-script.html)
 
-#### 3.3.2 Callbacks
+#### 3.4.2 Callbacks
 
 A callback keeps the initiating script of the code that scheduled or
 registered it. This holds even when the callback function itself is defined in
@@ -206,7 +220,7 @@ Tests:
 - [xml-http-request.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/xml-http-request.html)
 - [iframe-post-message.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/iframe-post-message.html)
 
-### 3.4 Module scripts
+### 3.5 Module scripts
 
 - A module loaded by the document reports the document's URL. This includes a
   `<script type="module" src>` element in markup, a static `import` in an
@@ -252,11 +266,11 @@ Tests:
 - [module-script-from-static-importer.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-static-importer.html)
 - [module-script-from-dynamic-importer.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/module-script-from-dynamic-importer.html)
 
-### 3.5 Workers
+### 3.6 Workers
 
-#### 3.5.1 Worker scripts
+#### 3.6.1 Worker scripts
 
-The script of a dedicated worker, classic or module, follows section 3.3: it
+The script of a dedicated worker, classic or module, follows [section 3.4](#34-resources-requested-by-javascript): it
 reports the initiating script of the code that called `new Worker()`. For
 example, it is the document if an inline script started the worker, an
 external script if that script started it, and the document if an inline
@@ -285,7 +299,7 @@ Tests:
 
 - [dedicated-worker-script.html](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/dedicated-worker-script.html)
 
-#### 3.5.2 Resources requested inside a worker
+#### 3.6.2 Resources requested inside a worker
 
 - Inside a dedicated or shared worker, resources requested by the worker's
   code report the worker script's URL. This includes `fetch()`,
