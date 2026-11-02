@@ -43,9 +43,9 @@ breaks interoperability.
 All the tests are in
 [resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/).
 
-In the examples, a comment such as `// a.png: page.html` means that the
-`initiatorUrl` of `a.png` is the URL of `page.html`. File names stand for
-absolute URLs.
+In the examples, all files are at `https://example.com/`. A comment
+`initiatorUrl: "…"` shows the `initiatorUrl` of the resource requested on that
+line.
 
 ### 3.1 Resources in HTML markup
 
@@ -61,12 +61,12 @@ initiator. This includes:
 Example:
 
 ```html
-<!-- page.html -->
-<script src="a.js"></script>          <!-- a.js: page.html -->
-<link rel="stylesheet" href="s.css">  <!-- s.css: page.html -->
-<img src="i.png">                     <!-- i.png: page.html -->
+<!-- https://example.com/page.html -->
+<script src="a.js"></script>          <!-- initiatorUrl: "https://example.com/page.html" -->
+<link rel="stylesheet" href="s.css">  <!-- initiatorUrl: "https://example.com/page.html" -->
+<img src="i.png">                     <!-- initiatorUrl: "https://example.com/page.html" -->
 <style>
-  body { background: url(bg.png); }   /* bg.png: page.html */
+  body { background: url(bg.png); }   /* initiatorUrl: "https://example.com/page.html" */
 </style>
 ```
 
@@ -87,20 +87,19 @@ Tests:
 Example:
 
 ```css
-/* s.css */
-@import "other.css";                               /* other.css: s.css */
-@font-face { font-family: f; src: url(f.ttf); }    /* f.ttf: s.css */
-body { background: url(bg.png); }                  /* bg.png: s.css */
+/* https://example.com/s.css */
+@import "other.css";                             /* initiatorUrl: "https://example.com/s.css" */
+@font-face { font-family: f; src: url(f.ttf); }  /* initiatorUrl: "https://example.com/s.css" */
+body { background: url(bg.png); }                /* initiatorUrl: "https://example.com/s.css" */
 ```
 
 ```html
-<!-- page.html -->
+<!-- https://example.com/page.html -->
 <script>
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = "s.css";
-  document.head.appendChild(link);  // s.css: page.html
-                                    // resources in s.css: s.css
+  document.head.appendChild(link);  // initiatorUrl: "https://example.com/page.html"
 </script>
 ```
 
@@ -133,14 +132,18 @@ other scripts.
 Example:
 
 ```html
-<!-- page.html -->
+<!-- https://example.com/page.html -->
 <script src="lib.js"></script>     <!-- lib.js defines loadImage() -->
 <script>
-  fetch("a.json");                 // a.json: page.html
-  loadImage("b.png");              // b.png: page.html, not lib.js
+  fetch("a.json");                 // initiatorUrl: "https://example.com/page.html"
+  loadImage("b.png");              // initiatorUrl: "https://example.com/page.html"
 </script>
-<script src="loader.js"></script>  <!-- loader.js runs fetch("c.json") -->
-                                   <!-- c.json: loader.js -->
+<script src="loader.js"></script>
+```
+
+```js
+// https://example.com/loader.js
+fetch("c.json");                   // initiatorUrl: "https://example.com/loader.js"
 ```
 
 Tests:
@@ -169,15 +172,20 @@ another script. Covered callbacks:
 Example:
 
 ```html
-<!-- page.html -->
+<!-- https://example.com/page.html -->
 <script src="lib.js"></script>  <!-- lib.js defines loadImage() -->
 <script>
-  setTimeout(() => loadImage("a.png"), 0);   // a.png: page.html
-  scheduler.postTask(() => fetch("b.json")); // b.json: page.html
+  // initiatorUrl: "https://example.com/page.html"
+  setTimeout(() => loadImage("a.png"), 0);
+
+  // initiatorUrl: "https://example.com/page.html"
+  scheduler.postTask(() => fetch("b.json"));
+
+  // initiatorUrl: "https://example.com/page.html"
   Promise.resolve().then(() => fetch("c.json"));
-                                             // c.json: page.html
+
+  // initiatorUrl: "https://example.com/page.html"
   window.addEventListener("load", () => fetch("d.json"));
-                                             // d.json: page.html
 </script>
 ```
 
@@ -213,27 +221,27 @@ Tests:
 Example:
 
 ```html
-<!-- page.html -->
+<!-- https://example.com/page.html -->
 <script type="module">
-  import "./a.mjs";   // a.mjs: page.html
-  import("./b.mjs");  // b.mjs: page.html
+  import "./a.mjs";   // initiatorUrl: "https://example.com/page.html"
+  import("./b.mjs");  // initiatorUrl: "https://example.com/page.html"
 </script>
 <script src="classic.js"></script>
 ```
 
 ```js
-// a.mjs
-import "./c.mjs";     // c.mjs: a.mjs
-import("./d.mjs");    // d.mjs: a.mjs
+// https://example.com/a.mjs
+import "./c.mjs";     // initiatorUrl: "https://example.com/a.mjs"
+import("./d.mjs");    // initiatorUrl: "https://example.com/a.mjs"
 const script = document.createElement("script");
 script.type = "module";
 script.src = "./e.mjs";
-document.head.appendChild(script);  // e.mjs: a.mjs
+document.head.appendChild(script);  // initiatorUrl: "https://example.com/a.mjs"
 ```
 
 ```js
-// classic.js (a classic script)
-import("./f.mjs");    // f.mjs: classic.js
+// https://example.com/classic.js (a classic script)
+import("./f.mjs");    // initiatorUrl: "https://example.com/classic.js"
 ```
 
 Tests:
@@ -258,13 +266,17 @@ Resource Timing entry today, so they have no `initiatorUrl`.
 Example:
 
 ```html
-<!-- page.html -->
+<!-- https://example.com/page.html -->
 <script>
-  new Worker("w1.js");                           // w1.js: page.html
-  setTimeout(() => new Worker("w2.js"), 0);      // w2.js: page.html
+  new Worker("w1.js");                       // initiatorUrl: "https://example.com/page.html"
+  setTimeout(() => new Worker("w2.js"), 0);  // initiatorUrl: "https://example.com/page.html"
 </script>
-<script src="starter.js"></script>  <!-- starter.js runs new Worker("w3.js") -->
-                                    <!-- w3.js: starter.js -->
+<script src="starter.js"></script>
+```
+
+```js
+// https://example.com/starter.js
+new Worker("w3.js");                         // initiatorUrl: "https://example.com/starter.js"
 ```
 
 Tests:
@@ -283,11 +295,11 @@ Tests:
 Example:
 
 ```js
-// worker.js
-importScripts("helper.js");             // helper.js: worker.js
-fetch("a.json");                        // a.json: worker.js
-setTimeout(() => fetch("b.json"), 0);   // b.json: worker.js
-onmessage = () => fetch("c.json");      // c.json: worker.js
+// https://example.com/worker.js
+importScripts("helper.js");             // initiatorUrl: "https://example.com/worker.js"
+fetch("a.json");                        // initiatorUrl: "https://example.com/worker.js"
+setTimeout(() => fetch("b.json"), 0);   // initiatorUrl: "https://example.com/worker.js"
+onmessage = () => fetch("c.json");      // initiatorUrl: "https://example.com/worker.js"
 ```
 
 Tests:
