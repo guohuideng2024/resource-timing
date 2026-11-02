@@ -193,7 +193,7 @@ img.src = "/images/blue.png?no_cache";
 document.body.appendChild(img);
 ```
 
-#### 3.4.2 Callbacks
+#### 3.4.2 Asynchronous execution
 
 A callback keeps the initiating script of the code that scheduled or
 registered it. This holds even when the callback function itself is defined in
