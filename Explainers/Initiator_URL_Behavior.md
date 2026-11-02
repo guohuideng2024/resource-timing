@@ -57,13 +57,9 @@ Chromium plans to run an origin trial, so this behavior is not final and may
 change based on feedback.
 
 All the tests are in
-[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). The examples
-are excerpts from these tests and their helper files. The only lines added
-are comments that give the expected `initiatorUrl`. A comment
-`<resource>: <initiatorUrl>` is about the resource requested on the next line,
-named as in the test. Other comments say which resources they cover.
-`initiatorUrl` paths are relative to `/resource-timing/`; the actual value is
-the absolute URL.
+[resource-timing/tentative/initiator-url/](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/). In the
+examples, a comment `<resource>: <initiatorUrl>` gives the expected
+`initiatorUrl` of the resource requested on the next line.
 
 ### 3.2 Resources in HTML markup
 
