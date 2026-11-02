@@ -72,8 +72,6 @@ document's URL as their initiator. This includes:
 - Resources referenced from an inline `<style>` element, such as a background
   image or an `@font-face` font.
 
-Elements that script creates or modifies are covered in [section 3.4](#34-resources-requested-by-javascript).
-
 Examples:
 
 From [`tentative/initiator-url/static-resource.html`](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/web_tests/external/wpt/resource-timing/tentative/initiator-url/static-resource.html):
