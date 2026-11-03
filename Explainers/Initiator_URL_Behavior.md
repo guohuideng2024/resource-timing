@@ -338,11 +338,11 @@ goals for `initiatorUrl`:
 
 **Conclusion**
 
-We believe (A) serves both goals better. Neither is perfect: a resource
-fetched by an event or message handler is related to two scripts, the one
-that registered the handler and the one that caused the event, and
-`initiatorUrl` can report only one of them. Some information is lost either
-way. Feedback on this decision is welcome.
+The author of this document believes (A) serves both goals better. Neither is
+perfect: a resource fetched by an event or message handler is related to two
+scripts, the one that registered the handler and the one that caused the
+event, and `initiatorUrl` can report only one of them. Some information is
+lost either way. Feedback on this decision is welcome.
 
 ### 3.5 Module scripts
 
