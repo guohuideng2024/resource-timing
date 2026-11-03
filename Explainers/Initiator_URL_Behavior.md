@@ -299,9 +299,7 @@ goals for `initiatorUrl`:
 **Goal 1: optimizing resource delivery**
 
 - (A) reports the code that decides what to fetch. It is the same on every
-  page load, so it gives a stable dependency. Many events, such as `load`,
-  network and input events, are fired by the browser, so (A) is the only
-  candidate for them.
+  page load, so it gives a stable dependency.
 - (B) reports what triggered the fetch at that time, for example a message
   from an iframe. This can show what a fetch waited for, but the sender can
   vary between page loads.
@@ -319,12 +317,24 @@ goals for `initiatorUrl`:
 
 **Goal 2: attributing resources**
 
-- (A) reports the code that made the request, which is the code responsible
-  for it.
-- (B) reports the code that caused the request. This helps when the sender
-  controls what is fetched, for example by passing a URL in the message. But
-  the sender may be in a cross-origin frame, and reporting its URL could leak
+- (A) reports the code that requested the resource. The handler chooses what
+  to fetch, so it is responsible for the resource. If a malicious resource is
+  loaded, the handler is the code to examine.
+- (B) reports the code that caused the event. In most cases, that code has no
+  say in what the handler fetches. For example, a script that sends a message,
+  or a user who clicks a button, does not choose the resource and is usually
+  innocent. (B) helps only in the less common case where the sender chooses
+  the resource, for example by passing a URL in the message. Also, the sender
+  may be in a cross-origin frame, and reporting its URL could leak
   information.
+
+**Other advantages of (A)**
+
+- Many events, such as user interactions, `load` and network events, are fired
+  by the browser, not by a script. (B) has nothing to report for them.
+- (A) treats event and message handlers the same way as other callbacks in
+  [section 3.4.2](#342-asynchronous-execution), such as `setTimeout()`. This
+  makes the behavior consistent and easier to understand.
 
 **Conclusion**
 
