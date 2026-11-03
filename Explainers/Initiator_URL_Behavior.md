@@ -396,7 +396,7 @@ import('/resource-timing/resources/module-script-imported.js?label=classic-impor
 
 ### 3.6 Workers
 
-#### 3.6.1 Worker scripts
+#### 3.6.1 Worker scripts themselves
 
 Only the scripts of dedicated workers, classic or module, produce a Resource
 Timing entry today, so only they have an `initiatorUrl`. It follows
