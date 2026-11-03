@@ -398,12 +398,10 @@ import('/resource-timing/resources/module-script-imported.js?label=classic-impor
 
 #### 3.6.1 Worker scripts
 
-The script of a dedicated worker, classic or module, follows
+Only the scripts of dedicated workers, classic or module, produce a Resource
+Timing entry today, so only they have an `initiatorUrl`. It follows
 [section 3.4](#34-resources-requested-by-javascript): it reports the
 initiating script of the code that called `new Worker()`.
-
-The top-level scripts of shared workers and service workers do not produce a
-Resource Timing entry today, so they have no `initiatorUrl`.
 
 **Example 1: worker started by the document**
 
